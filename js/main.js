@@ -1,79 +1,147 @@
-var alphaDust = function () {
+/* 
+ * 2018.8.26 modify by lcc
+ * based on the js plugin http://www.htmleaf.com/jQuery/Menu-Navigation/20141212771.html
+ * based on other unknown sources...
+ * thanks for their open sources!
+*/
+jQuery(document).ready(function($) {
 
-    var _menuOn = false;
+	"use strict";
 
-    function initPostHeader() {
-        $('.main .post').each(function () {
-            var $post = $(this);
-            var $header = $post.find('.post-header.index');
-            var $title = $post.find('h1.title');
-            var $readMoreLink = $post.find('a.read-more');
+	/* Preloader */
+	var Annie_Preloader = function() {
+		$(window).on("load", function() {
+			// fade out the loading animation
+			$("#status").fadeOut();
 
-            var toggleHoverClass = function () {
-                $header.toggleClass('hover');
-            };
+			//fade out the white DIV that covers the website
+			$("#preloader").delay(400).fadeOut("slow");
+		});
+	};
 
-            $title.hover(toggleHoverClass, toggleHoverClass);
-            $readMoreLink.hover(toggleHoverClass, toggleHoverClass);
-        });
-    }
+	/* Nav */
+	var Annie_Nav = function() {
+		// browser window scroll (in pixels) after which the "menu" link is shown
+		var offset = 300;
+		var navigationContainer = $('#cd-nav');
+		var mainNavigation = navigationContainer.find('#cd-main-nav ul');
 
-    function _menuShow () {
-        $('nav a').addClass('menu-active');
-        $('.menu-bg').show();
-        $('.menu-item').css({opacity: 0});
-        TweenLite.to('.menu-container', 1, {padding: '0 40px'});
-        TweenLite.to('.menu-bg', 1, {opacity: '0.92'});
-        TweenMax.staggerTo('.menu-item', 0.5, {opacity: 1}, 0.3);
-        _menuOn = true;
+		//hide or show the "menu" link
+		checkMenu();
 
-        $('.menu-bg').hover(function () {
-            $('nav a').toggleClass('menu-close-hover');
-        });
-    }
+		$(window).scroll(function() {
+			checkMenu();
+		});
 
-    function _menuHide() {
-        $('nav a').removeClass('menu-active');
-        TweenLite.to('.menu-bg', 0.5, {opacity: '0', onComplete: function () {
-            $('.menu-bg').hide();
-        }});
-        TweenLite.to('.menu-container', 0.5, {padding: '0 100px'});
-        $('.menu-item').css({opacity: 0});
-        _menuOn = false;
-    }
+		//open or close the menu clicking on the bottom "menu" link
+		$('.cd-nav-trigger').on('click', function() {
+			$(this).toggleClass('menu-is-open');
 
-    function initMenu() {
+			//we need to remove the transitionEnd event handler (we add it when scolling up with the menu open)
+			mainNavigation.off('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend').toggleClass('is-visible');
+		});
 
-        $('nav a').click(function () {
-            if(_menuOn) {
-                _menuHide();
-            } else {
-                _menuShow();
-            }
-        });
+		function checkMenu() {
+			if($(window).scrollTop() > offset && !navigationContainer.hasClass('is-fixed')) {
+				navigationContainer.addClass('is-fixed').find('.cd-nav-trigger').one('webkitAnimationEnd oanimationend msAnimationEnd animationend', function() {
+					mainNavigation.addClass('has-transitions');
+				});
+			} else if($(window).scrollTop() <= offset) {
 
-        $('.menu-bg').click(function (e) {
-            if(_menuOn && e.target === this) {
-                _menuHide();
-            }
-        });
-    }
+				//check if the menu is open when scrolling up
+				if(mainNavigation.hasClass('is-visible') && !$('html').hasClass('no-csstransitions')) {
+					//close the menu with animation
+					mainNavigation.addClass('is-hidden').one('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend', function() {
+						//wait for the menu to be closed and do the rest
+						mainNavigation.removeClass('is-visible is-hidden has-transitions');
+						navigationContainer.removeClass('is-fixed');
+						$('.cd-nav-trigger').removeClass('menu-is-open');
+					});
 
-    function displayArchives() {
-        $('.archive-post').css({opacity: 0});
-        TweenMax.staggerTo('.archive-post', 0.4, {opacity: 1}, 0.15);
-    }
+					//check if the menu is open when scrolling up - fallback if transitions are not supported
+				} else if(mainNavigation.hasClass('is-visible') && $('html').hasClass('no-csstransitions')) {
+					mainNavigation.removeClass('is-visible has-transitions');
+					navigationContainer.removeClass('is-fixed');
+					$('.cd-nav-trigger').removeClass('menu-is-open');
 
-    return {
-        initPostHeader: initPostHeader,
-        initMenu: initMenu,
-        displayArchives: displayArchives
-    };
-}();
+					//scrolling up with menu closed
+				} else {
+					navigationContainer.removeClass('is-fixed');
+					mainNavigation.removeClass('has-transitions');
+				}
+			}
+		}
+	};
 
+	/* Random bg-img for header*/
+	var Annie_Random = function() {
+		//generate a random img that pre_name 'from 0 to 110'
+		var random_bg = Math.floor(Math.random() * 109 + 1);
 
-$(document).ready(function () {
-    alphaDust.initPostHeader();
-    alphaDust.initMenu();
-    alphaDust.displayArchives();
+		//var bg = 'url(/img/random/' + random_bg + '.jpg)';
+		var bg = 'url(/img/random/' + random_bg + '.jpg)';
+
+		$("#header-bg-2").css("background-image", bg);
+	};
+
+	/* ToTop */
+	var Annie_ToTop = function() {
+		var upperLimit = 500;
+
+		// Our scroll link element
+		var scrollElem = $('#totop');
+
+		// Scroll to top speed
+		var scrollSpeed = 500;
+
+		scrollElem.hide();
+
+		$(window).scroll(function() {
+			var scrollTop = $(document).scrollTop();
+
+			if(scrollTop > upperLimit) {
+				$(scrollElem).stop().fadeTo(300, 1);
+			} else {
+				$(scrollElem).stop().fadeTo(300, 0);
+			}
+		});
+
+		$(scrollElem).click(function() {
+			$('html, body').animate({
+				scrollTop: 0
+			}, scrollSpeed);
+			return false;
+		});
+	};
+
+	/* Show Comment */
+	var Annie_Comment = function() {
+		function Show_Hidden(obj) {
+			var obj = $('#annie-comment-container');
+		}
+
+		var obutton = document.getElementById("annie-comment-button");
+		var odiv = document.getElementById("annie-comment-container");
+		//var obutton = $('#annie-comment-button');
+		//var odiv = $('#annie-comment-container');	
+		if('obutton') {
+			obutton.onclick = function() {
+				Show_Hidden(odiv);
+				$("#annie-comment-button").css("display", 'none');
+				return false;
+			}
+		}
+	};
+
+	/* other js function */
+	/* ... */
+
+	/* Initialize */
+	(function Annie_Init() {
+		Annie_Preloader();
+		Annie_Nav();
+		//Annie_Random();
+		Annie_ToTop();
+		//Annie_Comment();
+	})();
 });
